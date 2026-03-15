@@ -9,6 +9,8 @@ import com.revshop.order.exception.UnauthorizedException;
 import com.revshop.order.repository.OrderRepository;
 import com.revshop.order.service.NotificationService;
 import com.revshop.order.service.OrderService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +20,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class OrderServiceImpl implements OrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderServiceImpl.class);
 
     private final OrderRepository orderRepository;
     private final NotificationService notificationService;
@@ -30,6 +34,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
+        log.info("Creating order for userId: {} with {} items", request.getUserId(), request.getItems().size());
         Order order = new Order();
         order.setUserId(request.getUserId());
         order.setTotalAmount(request.getTotalAmount());
@@ -54,6 +59,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         Order savedOrder = orderRepository.save(order);
+        log.info("Order persisted with orderId: {}", savedOrder.getId());
 
         // Create notification for buyer
         notificationService.createNotification(
@@ -74,41 +80,52 @@ public class OrderServiceImpl implements OrderService {
                         savedOrder.getId()
                 ));
 
+        log.info("Order {} created successfully and notifications dispatched", savedOrder.getId());
         return mapToOrderResponse(savedOrder);
     }
 
     @Override
     public OrderResponse getOrderById(Long orderId) {
+        log.info("Fetching order by orderId: {}", orderId);
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
+        log.info("Order {} fetched successfully", orderId);
         return mapToOrderResponse(order);
     }
 
     @Override
     public List<OrderResponse> getOrdersByBuyer(Long userId) {
-        return orderRepository.findByUserIdOrderByOrderDateDesc(userId)
+        log.info("Fetching buyer orders for userId: {}", userId);
+        List<OrderResponse> orders = orderRepository.findByUserIdOrderByOrderDateDesc(userId)
                 .stream()
                 .map(this::mapToOrderResponse)
                 .collect(Collectors.toList());
+        log.info("Fetched {} buyer orders for userId: {}", orders.size(), userId);
+        return orders;
     }
 
     @Override
     public List<OrderResponse> getOrdersBySeller(Long sellerId) {
-        return orderRepository.findBySellerIdOrderByOrderDateDesc(sellerId)
+        log.info("Fetching seller orders for sellerId: {}", sellerId);
+        List<OrderResponse> orders = orderRepository.findBySellerIdOrderByOrderDateDesc(sellerId)
                 .stream()
                 .map(this::mapToOrderResponse)
                 .collect(Collectors.toList());
+        log.info("Fetched {} seller orders for sellerId: {}", orders.size(), sellerId);
+        return orders;
     }
 
     @Override
     @Transactional
     public OrderResponse updateOrderStatus(Long orderId, OrderStatus status) {
+        log.info("Updating order {} to status {}", orderId, status);
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
 
         OrderStatus previousStatus = order.getStatus();
         order.setStatus(status);
         Order updatedOrder = orderRepository.save(order);
+        log.info("Order {} status changed from {} to {}", orderId, previousStatus, status);
 
         // Create notification based on status
         NotificationType notificationType = getNotificationTypeForStatus(status);
@@ -121,20 +138,24 @@ public class OrderServiceImpl implements OrderService {
                 orderId
         );
 
+        log.info("Status update notification created for order {}", orderId);
         return mapToOrderResponse(updatedOrder);
     }
 
     @Override
     @Transactional
     public void cancelOrder(Long orderId, Long userId) {
+        log.info("Cancelling order {} for userId: {}", orderId, userId);
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
 
         if (!order.getUserId().equals(userId)) {
+            log.warn("Order cancellation denied for userId: {} on orderId: {}", userId, orderId);
             throw new UnauthorizedException("You are not authorized to cancel this order");
         }
 
         if (order.getStatus() == OrderStatus.SHIPPED || order.getStatus() == OrderStatus.DELIVERED) {
+            log.warn("Order {} cannot be cancelled because status is {}", orderId, order.getStatus());
             throw new IllegalStateException("Cannot cancel order that is already " + order.getStatus());
         }
 
@@ -159,9 +180,12 @@ public class OrderServiceImpl implements OrderService {
                         NotificationType.ORDER_CANCELLED,
                         orderId
                 ));
+
+        log.info("Order {} cancelled successfully", orderId);
     }
 
     private OrderResponse mapToOrderResponse(Order order) {
+        log.info("Mapping order {} with {} items to response", order.getId(), order.getOrderItems().size());
         List<OrderItemResponse> items = order.getOrderItems().stream()
                 .map(item -> new OrderItemResponse(
                         item.getId(),
@@ -192,6 +216,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private NotificationType getNotificationTypeForStatus(OrderStatus status) {
+        log.info("Resolving notification type for order status: {}", status);
         return switch (status) {
             case CONFIRMED -> NotificationType.ORDER_CONFIRMED;
             case SHIPPED -> NotificationType.ORDER_SHIPPED;
@@ -202,6 +227,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private String getStatusChangeMessage(Long orderId, OrderStatus status) {
+        log.info("Building status-change message for order {} with status {}", orderId, status);
         return switch (status) {
             case CONFIRMED -> "Your order #" + orderId + " has been confirmed!";
             case SHIPPED -> "Your order #" + orderId + " has been shipped!";
