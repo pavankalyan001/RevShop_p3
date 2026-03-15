@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# IntelliJ / IDE
+.idea/
+.vscode/
+*.iml
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+coverage/
+
+# Java / Spring Boot
+target/
+*.log
+*.class
+
+# Environment
+.env
+.env.local
+
+# Build files
+*.jar
+*.war
+*.zip
