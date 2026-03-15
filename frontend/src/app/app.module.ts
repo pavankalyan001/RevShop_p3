@@ -1,6 +1,7 @@
 import { NgModule, Injectable } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { StoreModule } from '@ngrx/store';
 
 import {
   HttpClientModule,
@@ -15,6 +16,7 @@ import { Observable } from 'rxjs';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
+import { appReducers } from './core/store/app-state.reducer';
 import { AuthPageComponent } from './features/auth/auth-page/auth-page.component';
 import { ForgotPasswordComponent } from './features/auth/forgot-password/forgot-password.component';
 
@@ -83,6 +85,7 @@ export class AuthInterceptor implements HttpInterceptor {
     FormsModule,
     HttpClientModule,
     ReactiveFormsModule,
+    StoreModule.forRoot(appReducers),
     SellerProductModule
   ],
   providers: [

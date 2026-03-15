@@ -1,8 +1,12 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject, map } from 'rxjs';
+import { Store } from '@ngrx/store';
+import { Observable, map } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { CartStateActions } from '../store/app-state.actions';
+import { AppState } from '../store/app-state.models';
+import { selectCart, selectCartItemCount } from '../store/app-state.selectors';
 
 export interface CartItemResponse {
   cartItemId: number;
@@ -31,12 +35,13 @@ export interface CartResponse {
 export class CartService {
 
   private baseUrl = `${environment.apiBaseUrl}/cart`;
+  readonly cart$: Observable<CartResponse | null>;
+  private readonly cartItemCountState: Signal<number>;
 
-  // BehaviorSubject to share cart state across components
-  private cartSubject = new BehaviorSubject<CartResponse | null>(null);
-  public cart$ = this.cartSubject.asObservable();
-
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private store: Store<AppState>) {
+    this.cart$ = this.store.select(selectCart);
+    this.cartItemCountState = this.store.selectSignal(selectCartItemCount);
+  }
 
   // ===== 7️⃣ Add Product to Cart =====
   addToCart(_userId: number, productId: number, quantity: number): Observable<CartResponse> {
@@ -45,7 +50,7 @@ export class CartService {
       quantity
     }).pipe(
       map((cart) => this.normalizeCart(cart)),
-      tap(cart => this.cartSubject.next(cart))
+      tap((cart) => this.store.dispatch(CartStateActions.setCart({ cart })))
     );
   }
 
@@ -55,7 +60,7 @@ export class CartService {
       quantity
     }).pipe(
       map((cart) => this.normalizeCart(cart)),
-      tap(cart => this.cartSubject.next(cart))
+      tap((cart) => this.store.dispatch(CartStateActions.setCart({ cart })))
     );
   }
 
@@ -63,7 +68,7 @@ export class CartService {
   removeFromCart(_userId: number, cartItemId: number): Observable<CartResponse> {
     return this.http.delete<any>(`${this.baseUrl}/items/${cartItemId}`).pipe(
       map((cart) => this.normalizeCart(cart)),
-      tap(cart => this.cartSubject.next(cart))
+      tap((cart) => this.store.dispatch(CartStateActions.setCart({ cart })))
     );
   }
 
@@ -71,21 +76,20 @@ export class CartService {
   getCart(_userId: number): Observable<CartResponse> {
     return this.http.get<any>(`${this.baseUrl}`).pipe(
       map((cart) => this.normalizeCart(cart)),
-      tap(cart => this.cartSubject.next(cart))
+      tap((cart) => this.store.dispatch(CartStateActions.setCart({ cart })))
     );
   }
 
   // ===== Clear Cart =====
   clearCart(_userId: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}`).pipe(
-      tap(() => this.cartSubject.next(null))
+      tap(() => this.store.dispatch(CartStateActions.clearCart()))
     );
   }
 
   // Get current cart count for badge display
   getCartItemCount(): number {
-    const cart = this.cartSubject.getValue();
-    return cart ? cart.totalItems : 0;
+    return this.cartItemCountState();
   }
 
   private normalizeCart(cart: any): CartResponse {

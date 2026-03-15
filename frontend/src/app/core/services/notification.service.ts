@@ -1,7 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Store } from '@ngrx/store';
+import { Observable, map, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { NotificationsStateActions } from '../store/app-state.actions';
+import { AppState } from '../store/app-state.models';
+import { selectNotifications, selectUnreadNotificationsCount } from '../store/app-state.selectors';
 
 export interface Notification {
     id: number;
@@ -18,12 +22,18 @@ export interface Notification {
 export class NotificationService {
 
     private baseUrl = `${environment.apiBaseUrl}/notifications`;
+    readonly notifications$: Observable<Notification[]>;
+    readonly unreadCount$: Observable<number>;
 
-    constructor(private http: HttpClient) { }
+    constructor(private http: HttpClient, private store: Store<AppState>) {
+        this.notifications$ = this.store.select(selectNotifications);
+        this.unreadCount$ = this.store.select(selectUnreadNotificationsCount);
+    }
 
     getUserNotifications(_email: string): Observable<Notification[]> {
         return this.http.get<any[]>(this.baseUrl).pipe(
-            map((notifications) => notifications.map((n) => this.normalizeNotification(n)))
+            map((notifications) => notifications.map((n) => this.normalizeNotification(n))),
+            tap((notifications) => this.store.dispatch(NotificationsStateActions.setNotifications({ notifications })))
         );
     }
 
@@ -34,7 +44,9 @@ export class NotificationService {
     }
 
     markAsRead(id: number): Observable<any> {
-        return this.http.put(`${this.baseUrl}/${id}/read`, {}, { responseType: 'text' });
+        return this.http.put(`${this.baseUrl}/${id}/read`, {}, { responseType: 'text' }).pipe(
+            tap(() => this.store.dispatch(NotificationsStateActions.markAsRead({ id })))
+        );
     }
 
     private normalizeNotification(notification: any): Notification {

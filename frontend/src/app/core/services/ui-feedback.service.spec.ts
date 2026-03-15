@@ -1,12 +1,16 @@
 import { TestBed } from '@angular/core/testing';
+import { StoreModule } from '@ngrx/store';
 import { UiFeedbackService } from './ui-feedback.service';
+import { appReducers } from '../store/app-state.reducer';
 
 describe('UiFeedbackService', () => {
   let service: UiFeedbackService;
 
   beforeEach(() => {
     jasmine.clock().install();
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({
+      imports: [StoreModule.forRoot(appReducers)]
+    });
     service = TestBed.inject(UiFeedbackService);
   });
 

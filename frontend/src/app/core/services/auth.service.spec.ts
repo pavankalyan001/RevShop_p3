@@ -1,7 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { Store, StoreModule } from '@ngrx/store';
 import { AuthService } from './auth.service';
+import { AppState } from '../store/app-state.models';
+import { appReducers } from '../store/app-state.reducer';
 
 const createToken = (payload: Record<string, unknown>): string => {
   const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
@@ -13,15 +16,17 @@ describe('AuthService', () => {
   let service: AuthService;
   let httpClient: HttpClient;
   let httpMock: HttpTestingController;
+  let store: Store<AppState>;
 
   beforeEach(() => {
     localStorage.clear();
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule]
+      imports: [HttpClientTestingModule, StoreModule.forRoot(appReducers)]
     });
     service = TestBed.inject(AuthService);
     httpClient = TestBed.inject(HttpClient);
     httpMock = TestBed.inject(HttpTestingController);
+    store = TestBed.inject(Store) as Store<AppState>;
   });
 
   afterEach(() => {
@@ -89,7 +94,7 @@ describe('AuthService', () => {
   it('hydrates the current user from a stored token on construction', () => {
     localStorage.setItem('token', createToken({ userId: 9, sub: 'buyer@example.com', role: 'BUYER' }));
 
-    const reloaded = new AuthService(httpClient);
+    const reloaded = new AuthService(httpClient, store);
 
     expect(reloaded.currentUser).toEqual({
       id: 9,
@@ -102,7 +107,7 @@ describe('AuthService', () => {
   it('clears an invalid stored token during initialization', () => {
     localStorage.setItem('token', 'bad-token');
 
-    const reloaded = new AuthService(httpClient);
+    const reloaded = new AuthService(httpClient, store);
 
     expect(reloaded.currentUser).toBeNull();
     expect(localStorage.getItem('token')).toBeNull();

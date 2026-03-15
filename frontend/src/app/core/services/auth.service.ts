@@ -1,9 +1,13 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, map } from 'rxjs';
+import { Store } from '@ngrx/store';
+import { Observable, map } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { jwtDecode } from 'jwt-decode';
 import { environment } from '../../../environments/environment';
+import { AuthStateActions } from '../store/app-state.actions';
+import { AppState } from '../store/app-state.models';
+import { selectCurrentUser } from '../store/app-state.selectors';
 
 export interface User {
   id: number;
@@ -24,12 +28,12 @@ export interface AuthResponse {
 export class AuthService {
 
   private baseUrl = `${environment.apiBaseUrl}/auth`;
+  readonly currentUser$: Observable<User | null>;
+  private readonly currentUserState: Signal<User | null>;
 
-  private _currentUser = new BehaviorSubject<User | null>(null);
-  currentUser$ = this._currentUser.asObservable();
-  get currentUser(): User | null { return this._currentUser.value; }
-
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, private store: Store<AppState>) {
+    this.currentUser$ = this.store.select(selectCurrentUser);
+    this.currentUserState = this.store.selectSignal(selectCurrentUser);
     this.checkToken();
   }
 
@@ -38,28 +42,36 @@ export class AuthService {
     if (token) {
       try {
         const decoded: any = jwtDecode(token);
-        this._currentUser.next({
-          id: Number(decoded.userId) || 0,
-          username: decoded.sub || 'User',
-          role: decoded.role,
-          email: decoded.sub
-        });
+        this.store.dispatch(AuthStateActions.setCurrentUser({
+          user: {
+            id: Number(decoded.userId) || 0,
+            username: decoded.sub || 'User',
+            role: decoded.role,
+            email: decoded.sub
+          }
+        }));
       } catch (e) {
         this.logout();
       }
     }
   }
 
+  get currentUser(): User | null {
+    return this.currentUserState();
+  }
+
   login(data: any): Observable<string> {
     return this.http.post<AuthResponse>(`${this.baseUrl}/login`, data).pipe(
       tap((response) => {
         this.saveToken(response.token);
-        this._currentUser.next({
-          id: response.userId,
-          username: response.name || response.email || 'User',
-          role: response.role,
-          email: response.email
-        });
+        this.store.dispatch(AuthStateActions.setCurrentUser({
+          user: {
+            id: response.userId,
+            username: response.name || response.email || 'User',
+            role: response.role,
+            email: response.email
+          }
+        }));
       }),
       map((response) => response.token)
     );
@@ -99,7 +111,7 @@ export class AuthService {
 
   logout() {
     localStorage.removeItem("token");
-    this._currentUser.next(null);
+    this.store.dispatch(AuthStateActions.resetSession());
   }
 
 }

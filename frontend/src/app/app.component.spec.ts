@@ -10,16 +10,23 @@ describe('AppComponent', () => {
   let component: AppComponent;
   let routerEvents: Subject<NavigationEnd>;
   let currentUserSubject: BehaviorSubject<User | null>;
+  let notificationsSubject: BehaviorSubject<Notification[]>;
+  let unreadCountSubject: BehaviorSubject<number>;
   let uiMessagesSubject: BehaviorSubject<UiFeedbackMessage[]>;
   let cartService: jasmine.SpyObj<CartService>;
   let authService: jasmine.SpyObj<AuthService> & { currentUser$: Observable<User | null> };
-  let notificationService: jasmine.SpyObj<NotificationService>;
+  let notificationService: jasmine.SpyObj<NotificationService> & {
+    notifications$: Observable<Notification[]>;
+    unreadCount$: Observable<number>;
+  };
   let uiFeedbackService: jasmine.SpyObj<UiFeedbackService> & { messages$: Observable<UiFeedbackMessage[]> };
   let router: jasmine.SpyObj<Router> & { events: Observable<NavigationEnd> };
 
   beforeEach(() => {
     routerEvents = new Subject<NavigationEnd>();
     currentUserSubject = new BehaviorSubject<User | null>(null);
+    notificationsSubject = new BehaviorSubject<Notification[]>([]);
+    unreadCountSubject = new BehaviorSubject<number>(0);
     uiMessagesSubject = new BehaviorSubject<UiFeedbackMessage[]>([]);
 
     cartService = jasmine.createSpyObj<CartService>('CartService', ['getCart'], {
@@ -37,9 +44,27 @@ describe('AppComponent', () => {
       { currentUser$: currentUserSubject.asObservable() }
     );
 
-    notificationService = jasmine.createSpyObj<NotificationService>('NotificationService', ['getUserNotifications', 'markAsRead']);
-    notificationService.getUserNotifications.and.returnValue(of([]));
-    notificationService.markAsRead.and.returnValue(of('ok'));
+    notificationService = Object.assign(
+      jasmine.createSpyObj<NotificationService>('NotificationService', ['getUserNotifications', 'markAsRead']),
+      {
+        notifications$: notificationsSubject.asObservable(),
+        unreadCount$: unreadCountSubject.asObservable()
+      }
+    );
+    notificationService.getUserNotifications.and.callFake(() => of(notificationsSubject.value));
+    notificationService.markAsRead.and.callFake((id: number) => {
+      notificationsSubject.next(
+        notificationsSubject.value.map((notification) =>
+          notification.id === id
+            ? { ...notification, isRead: true, read: true }
+            : notification
+        )
+      );
+      unreadCountSubject.next(
+        notificationsSubject.value.filter((notification) => !notification.read).length
+      );
+      return of('ok');
+    });
 
     uiFeedbackService = Object.assign(
       jasmine.createSpyObj<UiFeedbackService>('UiFeedbackService', ['dismiss']),
@@ -65,7 +90,11 @@ describe('AppComponent', () => {
       { id: 1, userId: 1, message: 'First', isRead: false, read: false, createdAt: '2024-01-01' },
       { id: 2, userId: 1, message: 'Second', isRead: true, read: true, createdAt: '2024-01-02' }
     ];
-    notificationService.getUserNotifications.and.returnValue(of(notifications));
+    notificationService.getUserNotifications.and.callFake(() => {
+      notificationsSubject.next(notifications);
+      unreadCountSubject.next(1);
+      return of(notifications);
+    });
 
     component.ngOnInit();
     currentUserSubject.next({ id: 7, username: 'buyer', role: 'BUYER', email: 'buyer@example.com' });
@@ -76,14 +105,16 @@ describe('AppComponent', () => {
     expect(component.unreadCount).toBe(1);
   });
 
-  it('clears notifications when the current user becomes null', () => {
-    component.notifications = [
-      { id: 1, userId: 1, message: 'First', isRead: false, read: false, createdAt: '2024-01-01' }
-    ];
-    component.unreadCount = 1;
-
+  it('clears notifications when the notification state is reset', () => {
     component.ngOnInit();
+    notificationsSubject.next([
+      { id: 1, userId: 1, message: 'First', isRead: false, read: false, createdAt: '2024-01-01' }
+    ]);
+    unreadCountSubject.next(1);
+
     currentUserSubject.next(null);
+    notificationsSubject.next([]);
+    unreadCountSubject.next(0);
 
     expect(component.notifications).toEqual([]);
     expect(component.unreadCount).toBe(0);
@@ -98,7 +129,6 @@ describe('AppComponent', () => {
   });
 
   it('marks unread notifications as read and decrements the counter', () => {
-    component.unreadCount = 2;
     const notification: Notification = {
       id: 9,
       userId: 1,
@@ -108,11 +138,15 @@ describe('AppComponent', () => {
       createdAt: '2024-01-01'
     };
 
+    component.ngOnInit();
+    notificationsSubject.next([notification]);
+    unreadCountSubject.next(1);
+
     component.markAsRead(notification);
 
     expect(notificationService.markAsRead).toHaveBeenCalledWith(9);
-    expect(notification.read).toBeTrue();
-    expect(component.unreadCount).toBe(1);
+    expect(component.notifications[0].read).toBeTrue();
+    expect(component.unreadCount).toBe(0);
   });
 
   it('opens the search input on first toggle and navigates on second toggle with a query', () => {

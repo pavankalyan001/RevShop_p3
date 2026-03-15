@@ -1,6 +1,8 @@
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { StoreModule } from '@ngrx/store';
 import { ReviewService } from './review.service';
+import { appReducers } from '../store/app-state.reducer';
 
 describe('ReviewService', () => {
   let service: ReviewService;
@@ -8,7 +10,7 @@ describe('ReviewService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule]
+      imports: [HttpClientTestingModule, StoreModule.forRoot(appReducers)]
     });
     service = TestBed.inject(ReviewService);
     httpMock = TestBed.inject(HttpTestingController);

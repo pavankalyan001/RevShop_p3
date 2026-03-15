@@ -23,9 +23,6 @@ export class AppComponent implements OnInit {
   currentUser: User | null = null;
   uiMessages: UiFeedbackMessage[] = [];
 
-  // Hardcoded for now, same as in CartComponent for the seeder
-  private userId!: number;
-
   isAuthRoute = false;
 
   constructor(
@@ -47,25 +44,27 @@ export class AppComponent implements OnInit {
       this.uiMessages = messages;
     });
 
+    this.notificationService.notifications$.subscribe(notifications => {
+      this.notifications = notifications;
+    });
+
+    this.notificationService.unreadCount$.subscribe(unreadCount => {
+      this.unreadCount = unreadCount;
+    });
+
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
       if (user) {
         // Fetch specific cart using user.id once Backend syncs cart properly to user ID.
         this.cartService.getCart(user.id).subscribe();
         this.loadNotifications(user.email!);
-      } else {
-        this.notifications = [];
-        this.unreadCount = 0;
       }
     });
 
   }
 
   loadNotifications(email: string) {
-    this.notificationService.getUserNotifications(email).subscribe(data => {
-      this.notifications = data;
-      this.unreadCount = data.filter(n => !n.read).length;
-    });
+    this.notificationService.getUserNotifications(email).subscribe();
   }
 
   toggleNotifications() {
@@ -74,10 +73,7 @@ export class AppComponent implements OnInit {
 
   markAsRead(n: Notification) {
     if (!n.read) {
-      this.notificationService.markAsRead(n.id).subscribe(() => {
-        n.read = true;
-        this.unreadCount = Math.max(0, this.unreadCount - 1);
-      });
+      this.notificationService.markAsRead(n.id).subscribe();
     }
   }
 

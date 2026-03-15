@@ -1,8 +1,17 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Store } from '@ngrx/store';
 import { Product } from '../../features/seller-product/models/product.model';
-import { Observable, catchError, map } from 'rxjs';
+import { Observable, catchError, map, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { ProductsStateActions } from '../store/app-state.actions';
+import { AppState } from '../store/app-state.models';
+import {
+  selectAllProducts,
+  selectSearchResults,
+  selectSelectedProduct,
+  selectSellerProducts
+} from '../store/app-state.selectors';
 
 @Injectable({
   providedIn: 'root'
@@ -11,35 +20,54 @@ export class ProductService {
 
   private baseUrl = `${environment.apiBaseUrl}/products`;
   private sellerUrl = `${environment.apiBaseUrl}/seller/products`;
+  readonly allProducts$: Observable<Product[]>;
+  readonly sellerProducts$: Observable<Product[]>;
+  readonly searchResults$: Observable<Product[]>;
+  readonly selectedProduct$: Observable<Product | null>;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private store: Store<AppState>) {
+    this.allProducts$ = this.store.select(selectAllProducts);
+    this.sellerProducts$ = this.store.select(selectSellerProducts);
+    this.searchResults$ = this.store.select(selectSearchResults);
+    this.selectedProduct$ = this.store.select(selectSelectedProduct);
+  }
 
   // ===== Kavya's Seller Methods =====
 
   addProduct(product: Product): Observable<Product> {
     return this.http.post<any>(this.sellerUrl, this.toProductRequest(product))
-      .pipe(map((saved) => this.normalizeProduct(saved)));
+      .pipe(
+        map((saved) => this.normalizeProduct(saved)),
+        tap((savedProduct) => this.store.dispatch(ProductsStateActions.upsertProduct({ product: savedProduct })))
+      );
   }
 
   updateProduct(id: number, product: Product): Observable<Product> {
     return this.http.put<any>(`${this.sellerUrl}/${id}`, this.toProductUpdateRequest(product))
-      .pipe(map((saved) => this.normalizeProduct(saved)));
+      .pipe(
+        map((saved) => this.normalizeProduct(saved)),
+        tap((savedProduct) => this.store.dispatch(ProductsStateActions.upsertProduct({ product: savedProduct })))
+      );
   }
 
   deleteProduct(id: number) {
-    return this.http.delete(`${this.sellerUrl}/${id}`);
+    return this.http.delete(`${this.sellerUrl}/${id}`).pipe(
+      tap(() => this.store.dispatch(ProductsStateActions.removeProduct({ id })))
+    );
   }
 
   getAllProducts(): Observable<Product[]> {
     return this.http.get<any>(this.baseUrl).pipe(
       map((response) => this.extractProducts(response)),
-      map((products) => products.map((p) => this.normalizeProduct(p)))
+      map((products) => products.map((p) => this.normalizeProduct(p))),
+      tap((products) => this.store.dispatch(ProductsStateActions.setAllProducts({ products })))
     );
   }
 
   getSellerProducts(_sellerId?: number): Observable<Product[]> {
     return this.http.get<any[]>(this.sellerUrl).pipe(
-      map((products) => products.map((p) => this.normalizeProduct(p)))
+      map((products) => products.map((p) => this.normalizeProduct(p))),
+      tap((products) => this.store.dispatch(ProductsStateActions.setSellerProducts({ products })))
     );
   }
 
@@ -82,13 +110,17 @@ export class ProductService {
 
   searchProducts(keyword: string) {
     return this.http.get<any[]>(`${this.baseUrl}/search?keyword=${encodeURIComponent(keyword)}`)
-      .pipe(map((products) => products.map((p) => this.normalizeProduct(p))));
+      .pipe(
+        map((products) => products.map((p) => this.normalizeProduct(p))),
+        tap((products) => this.store.dispatch(ProductsStateActions.setSearchResults({ products })))
+      );
   }
 
   getProductDetails(id: number) {
     return this.http.get<any>(`${this.baseUrl}/details/${id}`).pipe(
       catchError(() => this.http.get<any>(`${this.baseUrl}/${id}`)),
-      map((product) => this.normalizeProduct(product))
+      map((product) => this.normalizeProduct(product)),
+      tap((product) => this.store.dispatch(ProductsStateActions.setSelectedProduct({ product })))
     );
   }
 
