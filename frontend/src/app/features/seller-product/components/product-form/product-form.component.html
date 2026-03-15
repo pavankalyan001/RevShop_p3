@@ -1,0 +1,123 @@
+<section class="product-form-card ui-panel">
+  <header class="ui-section-heading product-form-header">
+    <h3>{{ form.id ? 'Edit product' : 'Add new product' }}</h3>
+    <p>Use the same field sizing, spacing, and inline validation across seller catalog actions.</p>
+  </header>
+
+  <div class="ui-banner" *ngIf="statusMessage" [ngClass]="'ui-banner--' + statusTone">
+    {{ statusMessage }}
+  </div>
+
+  <div class="product-form-grid ui-form-grid ui-form-grid--two-column">
+    <div class="ui-field ui-field--full">
+      <label class="ui-label" for="product-name">Product name</label>
+      <input
+        id="product-name"
+        class="ui-input"
+        [(ngModel)]="form.name"
+        (ngModelChange)="clearFieldError('name')"
+        placeholder="Product name"
+        [class.is-invalid]="fieldErrors.name"
+      >
+      <p class="ui-validation" *ngIf="fieldErrors.name">{{ fieldErrors.name }}</p>
+    </div>
+
+    <div class="ui-field">
+      <label class="ui-label" for="category-id">Category ID</label>
+      <input
+        id="category-id"
+        class="ui-input"
+        type="number"
+        [(ngModel)]="form.category"
+        (ngModelChange)="clearFieldError('category')"
+        placeholder="Category ID"
+        [class.is-invalid]="fieldErrors.category"
+      >
+      <p class="ui-validation" *ngIf="fieldErrors.category">{{ fieldErrors.category }}</p>
+    </div>
+
+    <div class="ui-field">
+      <label class="ui-label" for="product-quantity">Quantity</label>
+      <input
+        id="product-quantity"
+        class="ui-input"
+        type="number"
+        [(ngModel)]="form.quantity"
+        (ngModelChange)="clearFieldError('quantity')"
+        [class.is-invalid]="fieldErrors.quantity"
+      >
+      <p class="ui-validation" *ngIf="fieldErrors.quantity">{{ fieldErrors.quantity }}</p>
+    </div>
+
+    <div class="ui-field ui-field--full">
+      <label class="ui-label" for="product-description">Description</label>
+      <textarea
+        id="product-description"
+        class="ui-textarea"
+        [(ngModel)]="form.description"
+        (ngModelChange)="clearFieldError('description')"
+        placeholder="Describe the product"
+        [class.is-invalid]="fieldErrors.description"
+      ></textarea>
+      <p class="ui-validation" *ngIf="fieldErrors.description">{{ fieldErrors.description }}</p>
+    </div>
+
+    <div class="ui-field">
+      <label class="ui-label" for="product-price">Price</label>
+      <input
+        id="product-price"
+        class="ui-input"
+        type="number"
+        [(ngModel)]="form.price"
+        (ngModelChange)="clearFieldError('price')"
+        [class.is-invalid]="fieldErrors.price"
+      >
+      <p class="ui-validation" *ngIf="fieldErrors.price">{{ fieldErrors.price }}</p>
+    </div>
+
+    <div class="ui-field">
+      <label class="ui-label" for="product-mrp">MRP</label>
+      <input
+        id="product-mrp"
+        class="ui-input"
+        type="number"
+        [(ngModel)]="form.mrp"
+        (ngModelChange)="clearFieldError('mrp')"
+        [class.is-invalid]="fieldErrors.mrp"
+      >
+      <p class="ui-validation" *ngIf="fieldErrors.mrp">{{ fieldErrors.mrp }}</p>
+    </div>
+
+    <div class="ui-field">
+      <label class="ui-label" for="product-discount">Discount %</label>
+      <input
+        id="product-discount"
+        class="ui-input"
+        type="number"
+        [(ngModel)]="form.discountPercentage"
+        (ngModelChange)="clearFieldError('discountPercentage')"
+        [class.is-invalid]="fieldErrors.discountPercentage"
+      >
+      <p class="ui-validation" *ngIf="fieldErrors.discountPercentage">{{ fieldErrors.discountPercentage }}</p>
+    </div>
+
+    <div class="ui-field">
+      <label class="ui-label" for="stock-threshold">Stock threshold</label>
+      <input
+        id="stock-threshold"
+        class="ui-input"
+        type="number"
+        [(ngModel)]="form.stockThreshold"
+        (ngModelChange)="clearFieldError('stockThreshold')"
+        [class.is-invalid]="fieldErrors.stockThreshold"
+      >
+      <p class="ui-validation" *ngIf="fieldErrors.stockThreshold">{{ fieldErrors.stockThreshold }}</p>
+    </div>
+  </div>
+
+  <div class="ui-actions">
+    <button class="btn-premium btn-primary product-form-submit" type="button" (click)="save()">
+      {{ form.id ? 'Update product' : 'Add product' }}
+    </button>
+  </div>
+</section>

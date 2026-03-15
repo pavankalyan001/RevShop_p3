@@ -1,0 +1,152 @@
+<div class="auth-shell">
+  <div class="auth-background"></div>
+
+  <section class="auth-card ui-panel">
+    <header class="auth-header ui-section-heading">
+      <p class="auth-kicker">RevShop account</p>
+      <h1>{{ isLogin ? 'Welcome back' : 'Create your account' }}</h1>
+      <p>{{ isLogin ? 'Sign in to continue shopping and managing orders.' : 'Register once and switch between buyer and seller access from the same account area.' }}</p>
+    </header>
+
+    <div class="auth-tabs" role="tablist" aria-label="Authentication tabs">
+      <button type="button" class="auth-tab" [class.active]="isLogin" (click)="switchTab(true)">
+        Login
+      </button>
+      <button type="button" class="auth-tab" [class.active]="!isLogin" (click)="switchTab(false)">
+        Register
+      </button>
+    </div>
+
+    <form *ngIf="isLogin" class="auth-form ui-form-grid" [formGroup]="loginForm" (ngSubmit)="login()">
+      <div class="ui-banner ui-banner--success" *ngIf="message">
+        {{ message }}
+      </div>
+
+      <div class="ui-banner ui-banner--error" *ngIf="error">
+        {{ error }}
+      </div>
+
+      <div class="ui-field">
+        <label class="ui-label" for="login-email">Email address</label>
+        <input
+          id="login-email"
+          class="ui-input"
+          type="email"
+          placeholder="Enter your email"
+          formControlName="email"
+          [class.is-invalid]="loginForm.get('email')?.touched && loginForm.get('email')?.invalid"
+        >
+        <p class="ui-validation" *ngIf="loginForm.get('email')?.touched && loginForm.get('email')?.invalid">
+          <span *ngIf="loginForm.get('email')?.errors?.['required']">Email is required.</span>
+          <span *ngIf="loginForm.get('email')?.errors?.['email'] || loginForm.get('email')?.errors?.['pattern']">Enter a valid email address such as user@gmail.com.</span>
+        </p>
+      </div>
+
+      <div class="ui-field">
+        <label class="ui-label" for="login-password">Password</label>
+        <input
+          id="login-password"
+          class="ui-input"
+          type="password"
+          placeholder="Enter your password"
+          formControlName="password"
+          [class.is-invalid]="loginForm.get('password')?.touched && loginForm.get('password')?.invalid"
+        >
+        <p class="ui-validation" *ngIf="loginForm.get('password')?.touched && loginForm.get('password')?.invalid">
+          <span *ngIf="loginForm.get('password')?.errors?.['required']">Password is required.</span>
+          <span *ngIf="loginForm.get('password')?.errors?.['minlength']">Password must be at least 6 characters long.</span>
+        </p>
+      </div>
+
+      <div class="forgot-container">
+        <a routerLink="/forgot-password" class="forgot-link">Forgot password?</a>
+      </div>
+
+      <button type="submit" class="btn-premium btn-primary auth-submit">Login</button>
+    </form>
+
+    <form *ngIf="!isLogin" class="auth-form ui-form-grid ui-form-grid--two-column" [formGroup]="registerForm" (ngSubmit)="register()">
+      <div class="ui-banner ui-banner--success ui-field--full" *ngIf="message">
+        {{ message }}
+      </div>
+
+      <div class="ui-banner ui-banner--error ui-field--full" *ngIf="error">
+        {{ error }}
+      </div>
+
+      <div class="ui-field ui-field--full">
+        <label class="ui-label" for="register-name">Full name</label>
+        <input
+          id="register-name"
+          class="ui-input"
+          type="text"
+          placeholder="Enter your name"
+          formControlName="name"
+          [class.is-invalid]="registerForm.get('name')?.touched && registerForm.get('name')?.invalid"
+        >
+        <p class="ui-validation" *ngIf="registerForm.get('name')?.touched && registerForm.get('name')?.invalid">
+          <span *ngIf="registerForm.get('name')?.errors?.['required']">Name is required.</span>
+          <span *ngIf="registerForm.get('name')?.errors?.['minlength']">Name must be at least 3 characters long.</span>
+        </p>
+      </div>
+
+      <div class="ui-field">
+        <label class="ui-label" for="register-email">Email address</label>
+        <input
+          id="register-email"
+          class="ui-input"
+          type="email"
+          placeholder="Enter your email"
+          formControlName="email"
+          [class.is-invalid]="registerForm.get('email')?.touched && registerForm.get('email')?.invalid"
+        >
+        <p class="ui-validation" *ngIf="registerForm.get('email')?.touched && registerForm.get('email')?.invalid">
+          <span *ngIf="registerForm.get('email')?.errors?.['required']">Email is required.</span>
+          <span *ngIf="registerForm.get('email')?.errors?.['email'] || registerForm.get('email')?.errors?.['pattern']">Enter a valid email address such as user@gmail.com.</span>
+        </p>
+      </div>
+
+      <div class="ui-field">
+        <label class="ui-label" for="register-password">Password</label>
+        <input
+          id="register-password"
+          class="ui-input"
+          type="password"
+          placeholder="Enter your password"
+          formControlName="password"
+          [class.is-invalid]="registerForm.get('password')?.touched && registerForm.get('password')?.invalid"
+        >
+        <p class="ui-validation" *ngIf="registerForm.get('password')?.touched && registerForm.get('password')?.invalid">
+          <span *ngIf="registerForm.get('password')?.errors?.['required']">Password is required.</span>
+          <span *ngIf="registerForm.get('password')?.errors?.['minlength']">Password must be at least 6 characters long.</span>
+        </p>
+      </div>
+
+      <div class="ui-field">
+        <label class="ui-label" for="register-role">Role</label>
+        <select
+          id="register-role"
+          class="ui-select"
+          formControlName="role"
+          [class.is-invalid]="registerForm.get('role')?.touched && registerForm.get('role')?.invalid"
+        >
+          <option value="BUYER">Buyer</option>
+          <option value="SELLER">Seller</option>
+        </select>
+      </div>
+
+      <div class="ui-field" *ngIf="registerForm.get('role')?.value === 'SELLER'">
+        <label class="ui-label" for="register-business-name">Business name</label>
+        <input
+          id="register-business-name"
+          class="ui-input"
+          type="text"
+          placeholder="Enter business name"
+          formControlName="businessName"
+        >
+      </div>
+
+      <button type="submit" class="btn-premium btn-primary auth-submit ui-field--full">Register</button>
+    </form>
+  </section>
+</div>

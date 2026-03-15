@@ -1,0 +1,26 @@
+.product-form-card {
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.product-form-header {
+  margin-bottom: 18px;
+}
+
+.product-form-grid {
+  gap: 16px;
+}
+
+.product-form-submit {
+  max-width: 220px;
+}
+
+@media (max-width: 768px) {
+  .product-form-card {
+    padding: 20px 16px;
+  }
+
+  .product-form-submit {
+    max-width: none;
+  }
+}

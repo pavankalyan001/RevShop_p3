@@ -1,0 +1,45 @@
+<section class="product-list-card ui-panel">
+  <header class="ui-section-heading product-list-header">
+    <h2>Product management</h2>
+    <p>Catalog data now shares consistent table spacing and in-page status messages.</p>
+  </header>
+
+  <div class="ui-banner" *ngIf="listMessage" [ngClass]="'ui-banner--' + listTone">
+    {{ listMessage }}
+  </div>
+
+  <div class="table-wrap ui-table-shell">
+    <table class="product-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>MRP</th>
+          <th>Quantity</th>
+          <th>Discount %</th>
+          <th>Stock Threshold</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of products">
+          <td>{{ p.name }}</td>
+          <td>{{ p.categoryName || p.category?.name || p.category }}</td>
+          <td>{{ p.price }}</td>
+          <td>{{ p.mrp }}</td>
+          <td>{{ p.quantity }}</td>
+          <td>{{ p.discountPercentage }}</td>
+          <td>{{ p.stockThreshold }}</td>
+          <td class="actions">
+            <button class="edit-btn" (click)="edit(p)">Edit</button>
+            <button class="delete-btn" (click)="delete(p.id!)">Delete</button>
+          </td>
+        </tr>
+        <tr *ngIf="products.length === 0">
+          <td class="empty-row" colspan="8">No products available</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
