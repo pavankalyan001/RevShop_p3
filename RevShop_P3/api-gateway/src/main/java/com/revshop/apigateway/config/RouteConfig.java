@@ -77,6 +77,10 @@ public class RouteConfig {
                         .filters(f -> f.filter(jwtAuthenticationFilter.apply(new JwtAuthenticationFilter.Config())))
                         .uri("lb://order-service"))
 
+                .route("notification-websocket", r -> r
+                        .path("/ws/notifications")
+                        .uri("lb:ws://order-service"))
+
                 .build();
     }
 }

@@ -6,7 +6,10 @@ import com.revshop.order.entity.NotificationType;
 import com.revshop.order.exception.OrderNotFoundException;
 import com.revshop.order.repository.NotificationRepository;
 import com.revshop.order.service.NotificationService;
+import com.revshop.order.websocket.NotificationWebSocketHandler;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -16,16 +19,34 @@ import java.util.stream.Collectors;
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final NotificationWebSocketHandler notificationWebSocketHandler;
 
-    public NotificationServiceImpl(NotificationRepository notificationRepository) {
+    public NotificationServiceImpl(
+            NotificationRepository notificationRepository,
+            NotificationWebSocketHandler notificationWebSocketHandler
+    ) {
         this.notificationRepository = notificationRepository;
+        this.notificationWebSocketHandler = notificationWebSocketHandler;
     }
 
     @Override
     @Transactional
     public void createNotification(Long userId, String message, NotificationType type, Long referenceId) {
         Notification notification = new Notification(userId, message, type, referenceId);
-        notificationRepository.save(notification);
+        Notification savedNotification = notificationRepository.save(notification);
+        NotificationResponse response = mapToNotificationResponse(savedNotification);
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    notificationWebSocketHandler.sendNotification(userId, response);
+                }
+            });
+            return;
+        }
+
+        notificationWebSocketHandler.sendNotification(userId, response);
     }
 
     @Override

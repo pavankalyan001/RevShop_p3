@@ -40,12 +40,13 @@ describe('AppComponent', () => {
     }));
 
     authService = Object.assign(
-      jasmine.createSpyObj<AuthService>('AuthService', ['logout']),
+      jasmine.createSpyObj<AuthService>('AuthService', ['logout', 'getToken']),
       { currentUser$: currentUserSubject.asObservable() }
     );
+    authService.getToken.and.returnValue('jwt-token');
 
     notificationService = Object.assign(
-      jasmine.createSpyObj<NotificationService>('NotificationService', ['getUserNotifications', 'markAsRead']),
+      jasmine.createSpyObj<NotificationService>('NotificationService', ['getUserNotifications', 'markAsRead', 'connect', 'disconnect']),
       {
         notifications$: notificationsSubject.asObservable(),
         unreadCount$: unreadCountSubject.asObservable()
@@ -100,6 +101,7 @@ describe('AppComponent', () => {
     currentUserSubject.next({ id: 7, username: 'buyer', role: 'BUYER', email: 'buyer@example.com' });
 
     expect(cartService.getCart).toHaveBeenCalledWith(7);
+    expect(notificationService.connect).toHaveBeenCalledWith('jwt-token');
     expect(notificationService.getUserNotifications).toHaveBeenCalledWith('buyer@example.com');
     expect(component.currentUser?.id).toBe(7);
     expect(component.unreadCount).toBe(1);
@@ -116,6 +118,7 @@ describe('AppComponent', () => {
     notificationsSubject.next([]);
     unreadCountSubject.next(0);
 
+    expect(notificationService.disconnect).toHaveBeenCalled();
     expect(component.notifications).toEqual([]);
     expect(component.unreadCount).toBe(0);
   });
@@ -179,5 +182,10 @@ describe('AppComponent', () => {
   it('dismisses a UI message through the feedback service', () => {
     component.dismissUiMessage(42);
     expect(uiFeedbackService.dismiss).toHaveBeenCalledWith(42);
+  });
+
+  it('disconnects notification websocket on destroy', () => {
+    component.ngOnDestroy();
+    expect(notificationService.disconnect).toHaveBeenCalled();
   });
 });

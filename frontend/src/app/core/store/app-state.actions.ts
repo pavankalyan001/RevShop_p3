@@ -60,6 +60,7 @@ export const NotificationsStateActions = createActionGroup({
   source: 'Notifications State',
   events: {
     'Set Notifications': props<{ notifications: Notification[] }>(),
+    'Add Notification': props<{ notification: Notification }>(),
     'Mark As Read': props<{ id: number }>()
   }
 });

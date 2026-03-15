@@ -3,14 +3,20 @@ import { TestBed } from '@angular/core/testing';
 import { StoreModule } from '@ngrx/store';
 import { NotificationService } from './notification.service';
 import { appReducers } from '../store/app-state.reducer';
+import { UiFeedbackService } from './ui-feedback.service';
 
 describe('NotificationService', () => {
   let service: NotificationService;
   let httpMock: HttpTestingController;
+  let uiFeedbackService: jasmine.SpyObj<UiFeedbackService>;
 
   beforeEach(() => {
+    uiFeedbackService = jasmine.createSpyObj<UiFeedbackService>('UiFeedbackService', ['info']);
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, StoreModule.forRoot(appReducers)]
+      imports: [HttpClientTestingModule, StoreModule.forRoot(appReducers)],
+      providers: [
+        { provide: UiFeedbackService, useValue: uiFeedbackService }
+      ]
     });
     service = TestBed.inject(NotificationService);
     httpMock = TestBed.inject(HttpTestingController);

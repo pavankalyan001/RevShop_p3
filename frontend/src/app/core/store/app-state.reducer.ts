@@ -191,6 +191,12 @@ const notificationsReducerInternal = createReducer(
     ...state,
     items: notifications
   })),
+  on(NotificationsStateActions.addNotification, (state, { notification }) => ({
+    ...state,
+    items: state.items.some((item) => item.id === notification.id)
+      ? state.items.map((item) => item.id === notification.id ? notification : item)
+      : [notification, ...state.items]
+  })),
   on(NotificationsStateActions.markAsRead, (state, { id }) => ({
     ...state,
     items: state.items.map((notification) => notification.id === id

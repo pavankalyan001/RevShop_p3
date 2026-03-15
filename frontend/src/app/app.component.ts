@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { CartService } from './core/services/cart.service';
 import { AuthService, User } from './core/services/auth.service';
@@ -10,7 +10,7 @@ import { UiFeedbackMessage, UiFeedbackService } from './core/services/ui-feedbac
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   title = 'frontend';
 
   searchOpen = false;
@@ -55,12 +55,19 @@ export class AppComponent implements OnInit {
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
       if (user) {
+        this.notificationService.connect(this.authService.getToken());
         // Fetch specific cart using user.id once Backend syncs cart properly to user ID.
         this.cartService.getCart(user.id).subscribe();
         this.loadNotifications(user.email!);
+      } else {
+        this.notificationService.disconnect();
       }
     });
 
+  }
+
+  ngOnDestroy(): void {
+    this.notificationService.disconnect();
   }
 
   loadNotifications(email: string) {
